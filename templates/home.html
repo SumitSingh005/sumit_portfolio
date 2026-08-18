@@ -1,0 +1,205 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<section class="hero" id="home">
+    <div class="shell hero-grid">
+        <div class="reveal">
+            <p class="eyebrow">AI portfolio</p>
+            <h2>Hi, I'm <span class="gradient-text">Sumit Singh</span></h2>
+            <p id="typing"></p>
+            <p class="section-lead">
+                I build practical Django applications,
+                machine learning experiments, and full stack experiences that
+                feel fast, useful, and polished.
+            </p>
+
+            <div class="actions">
+                <a class="btn" href="#projects">View Projects</a>
+                <a class="btn secondary" href="#contact">Contact Me</a>
+            </div>
+        </div>
+
+        <aside class="hero-showcase reveal">
+            <div class="showcase-top">
+                <div class="window-dots" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
+                <span class="showcase-label">Featured project</span>
+            </div>
+
+            <div class="showcase-media">
+                {% if featured_project and featured_project.image %}
+                    <img src="{{ featured_project.image.url }}" alt="{{ featured_project.title }}">
+                {% else %}
+                    <div class="showcase-placeholder">
+                        Add a project image in Django admin to feature it here.
+                    </div>
+                {% endif %}
+            </div>
+
+            <div class="hero-stats">
+                <div class="stat">
+                    <span>Focus</span>
+                    <strong>AI + Django</strong>
+                </div>
+                <div class="stat">
+                    <span>Projects</span>
+                    <strong>{{ projects|length }}</strong>
+                </div>
+                <div class="stat">
+                    <span>Status</span>
+                    <strong>Open to work</strong>
+                </div>
+            </div>
+        </aside>
+    </div>
+</section>
+
+<section class="about" id="about">
+    <div class="shell about-grid">
+        <div class="reveal">
+            <p class="eyebrow">About</p>
+            <h2 class="section-title">Developer focused on useful AI products.</h2>
+            <p class="section-lead">
+                I am interested in Artificial Intelligence, Django development,
+                Machine Learning, NLP, and full stack product building. I enjoy
+                turning ideas into working systems with clean backend logic and
+                interfaces people can understand quickly.
+            </p>
+        </div>
+
+        <div class="about-panel reveal">
+            <div class="quick-list">
+                <div>
+                    <span>Primary stack</span>
+                    <strong>Python, Django</strong>
+                </div>
+                <div>
+                    <span>AI interests</span>
+                    <strong>NLP, ML</strong>
+                </div>
+                <div>
+                    <span>Build style</span>
+                    <strong>Clean and practical</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="skills" id="skills">
+    <div class="shell">
+        <div class="section-head reveal">
+            <div>
+                <p class="eyebrow">Skills</p>
+                <h2 class="section-title">Tools I use to build.</h2>
+                <p class="section-lead">Technologies and areas I use while building projects.</p>
+            </div>
+        </div>
+
+        <div class="skills-grid reveal">
+            {% for skill in skills %}
+                <div class="skill-card">{{ skill.name }}</div>
+            {% empty %}
+                <div class="skill-card">Django</div>
+                <div class="skill-card">Python</div>
+                <div class="skill-card">AI Integration</div>
+                <div class="skill-card">Machine Learning</div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="projects" id="projects">
+    <div class="shell">
+        <div class="section-head reveal">
+            <div>
+                <p class="eyebrow">Projects</p>
+                <h2 class="section-title">Selected portfolio work.</h2>
+                <p class="section-lead">A quick look at the projects saved in your Django admin.</p>
+            </div>
+        </div>
+
+        <div class="project-grid reveal">
+            {% for project in projects %}
+                <article class="project-card">
+                    {% if project.image %}
+                        <img class="project-image" src="{{ project.image.url }}" alt="{{ project.title }}">
+                    {% else %}
+                        <div class="project-image project-empty-image">Project Preview</div>
+                    {% endif %}
+
+                    <div class="project-body">
+                        <h3>{{ project.title }}</h3>
+                        <p>{{ project.description }}</p>
+
+                        <div class="project-actions">
+                            {% if project.github_link %}
+                                <a class="btn secondary" href="{{ project.github_link }}" target="_blank" rel="noopener">GitHub</a>
+                            {% endif %}
+
+                            {% if project.demo_link %}
+                                <a class="btn" href="{{ project.demo_link }}" target="_blank" rel="noopener">Live Demo</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </article>
+            {% empty %}
+                <article class="project-card">
+                    <div class="project-body">
+                        <h3>No projects yet</h3>
+                        <p>Add projects from the Django admin panel and they will appear here automatically.</p>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<section class="contact" id="contact">
+    <div class="shell contact-layout">
+        <div class="contact-card reveal">
+            <p class="eyebrow">Contact</p>
+            <h2 class="section-title">Start a conversation.</h2>
+            <p class="section-lead">
+                Send a message and it will be saved in the admin dashboard.
+                Email and WhatsApp notifications can also receive it when configured.
+            </p>
+
+            <div class="contact-stats">
+                <div class="stat">
+                    <span>Email</span>
+                    <strong>panwarfm@gmail.com</strong>
+                </div>
+                <div class="stat">
+                    <span>Phone</span>
+                    <strong>8126725409</strong>
+                </div>
+                <div class="stat">
+                    <span>Best for</span>
+                    <strong>Projects and work</strong>
+                </div>
+            </div>
+        </div>
+
+        <form class="contact-card reveal" method="post" action="{% url 'home' %}#contact">
+            {% csrf_token %}
+
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="message {{ message.tags }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+
+            <input type="text" name="name" placeholder="Your Name" required>
+            <input type="email" name="email" placeholder="Your Email" required>
+            <textarea name="message" placeholder="Your Message" required></textarea>
+            <button class="btn" type="submit">Send Message</button>
+        </form>
+    </div>
+</section>
+
+{% endblock %}
