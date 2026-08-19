@@ -32,7 +32,10 @@ SECRET_KEY = os.getenv(
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv('DJANGO_DEBUG', 'True') == 'True'
+DEBUG = os.getenv(
+    'DJANGO_DEBUG',
+    'False' if os.getenv('RENDER_EXTERNAL_HOSTNAME') else 'True',
+) == 'True'
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -145,7 +148,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_DIRS = [static_dir] if (static_dir := BASE_DIR / 'static').exists() else []
 
 STORAGES = {
     'staticfiles': {
