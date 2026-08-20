@@ -164,6 +164,9 @@ STORAGES = {
     },
 }
 
+WHITENOISE_USE_FINDERS = True
+
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
