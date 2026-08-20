@@ -7,7 +7,9 @@ from django.contrib import messages
 from django.core.mail import EmailMessage
 from django.shortcuts import redirect, render
 from django.views.decorators.csrf import ensure_csrf_cookie
-from .models import ContactMessage, Project, Skill
+
+from .forms import ContactForm
+from .models import Project, Skill
 
 
 def build_contact_notification(name, email, message):
@@ -21,9 +23,6 @@ def build_contact_notification(name, email, message):
 
 def send_contact_email(name, email, message):
     if not settings.CONTACT_NOTIFICATION_EMAIL:
-        return False
-
-    if settings.EMAIL_BACKEND == 'django.core.mail.backends.console.EmailBackend':
         return False
 
     if settings.EMAIL_BACKEND.endswith('.smtp.EmailBackend') and not settings.EMAIL_HOST:
@@ -75,58 +74,81 @@ def send_whatsapp_notification(name, email, message):
     try:
         with url_request.urlopen(whatsapp_request, timeout=10):
             return True
-    except (HTTPError, URLError, TimeoutError):
+    except (HTTPError, URLError, TimeoutError, OSError):
         return False
 
 
 @ensure_csrf_cookie
 def home(request):
     if request.method == 'POST':
-        name = request.POST.get('name', '').strip()
-        email = request.POST.get('email', '').strip()
-        message = request.POST.get('message', '').strip()
+        form = ContactForm(request.POST)
+        if form.is_valid():
+            contact = form.save()
+            name = contact.name
+            email = contact.email
+            message = contact.message
 
-        if name and email and message:
-            ContactMessage.objects.create(
-                name=name,
-                email=email,
-                message=message,
-            )
-
+            email_sent = False
+            email_failed = False
             try:
                 email_sent = send_contact_email(name, email, message)
             except Exception:
+                email_failed = True
+
+            whatsapp_sent = send_whatsapp_notification(name, email, message)
+
+            if email_failed:
                 messages.warning(
                     request,
                     'Your message was saved, but email notification failed.',
                 )
+            elif email_sent and whatsapp_sent:
+                messages.success(
+                    request,
+                    'Thanks, your message has been saved and sent via Email and WhatsApp.',
+                )
+            elif email_sent:
+                messages.success(
+                    request,
+                    'Thanks, your message has been saved and emailed.',
+                )
+            elif whatsapp_sent:
+                messages.success(
+                    request,
+                    'Thanks, your message has been saved and notified via WhatsApp.',
+                )
             else:
-                if email_sent:
-                    messages.success(
-                        request,
-                        'Thanks, your message has been saved and emailed.',
-                    )
-                else:
-                    messages.success(
-                        request,
-                        'Thanks, your message has been saved.',
-                    )
-
-            if send_whatsapp_notification(name, email, message):
-                messages.success(request, 'WhatsApp notification sent.')
+                messages.success(
+                    request,
+                    'Thanks, your message has been saved.',
+                )
         else:
-            messages.error(request, 'Please fill in every contact field.')
+            errors = []
+            for field, field_errors in form.errors.items():
+                for error in field_errors:
+                    errors.append(error)
+            error_message = ' '.join(errors) if errors else 'Please check the form fields and try again.'
+            messages.error(request, error_message)
 
         return redirect('/#contact')
 
     skills = Skill.objects.all()
     projects = Project.objects.all()
 
+    featured_project = (
+        projects.filter(is_featured=True).first()
+        or projects.filter(image__isnull=False).exclude(image='').first()
+        or projects.first()
+    )
+
     context = {
         'skills': skills,
         'projects': projects,
-        'featured_project': projects.first(),
+        'featured_project': featured_project,
+        'contact_email': getattr(settings, 'PORTFOLIO_CONTACT_EMAIL', 'panwarfm@gmail.com'),
+        'contact_phone': getattr(settings, 'PORTFOLIO_CONTACT_PHONE', '8126725409'),
     }
 
     return render(request, 'home.html', context)
+
 

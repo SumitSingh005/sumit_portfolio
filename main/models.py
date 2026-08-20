@@ -20,17 +20,22 @@ class Project(models.Model):
     image = models.ImageField(
         upload_to='projects/',
         null=True,
-        blank=True
+        blank=True,
     )
 
     github_link = models.URLField(
-        null=True,
-        blank=True
+        blank=True,
+        default='',
     )
 
     demo_link = models.URLField(
-        null=True,
-        blank=True
+        blank=True,
+        default='',
+    )
+
+    is_featured = models.BooleanField(
+        default=False,
+        help_text='Mark this project to be highlighted in the hero section showcase',
     )
 
     class Meta:

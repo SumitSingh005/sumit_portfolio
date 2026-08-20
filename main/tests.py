@@ -22,7 +22,22 @@ class HomeViewTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, 'AI Portfolio')
         self.assertContains(response, 'Django')
-        self.assertContains(response, 'AI Portfolio')
+
+    @override_settings(SECURE_SSL_REDIRECT=False)
+    def test_featured_project_selection_priority(self):
+        proj_a = Project.objects.create(
+            title='A Project No Image',
+            description='Project A description',
+            is_featured=False,
+        )
+        proj_b = Project.objects.create(
+            title='B Featured Project',
+            description='Project B description',
+            is_featured=True,
+        )
+
+        response = self.client.get(reverse('home'))
+        self.assertEqual(response.context['featured_project'], proj_b)
 
     @override_settings(
         EMAIL_BACKEND='django.core.mail.backends.locmem.EmailBackend',
@@ -48,9 +63,12 @@ class HomeViewTests(TestCase):
         self.assertEqual(ContactMessage.objects.count(), 1)
         self.assertEqual(len(mail.outbox), 1)
         self.assertIn('Visitor', mail.outbox[0].subject)
+        messages = [message.message for message in get_messages(response.wsgi_request)]
+        self.assertIn('Thanks, your message has been saved and emailed.', messages)
 
     @override_settings(
-        EMAIL_BACKEND='django.core.mail.backends.console.EmailBackend',
+        EMAIL_BACKEND='django.core.mail.backends.smtp.EmailBackend',
+        EMAIL_HOST='',
         CONTACT_NOTIFICATION_EMAIL='owner@example.com',
         WHATSAPP_ACCESS_TOKEN='',
         WHATSAPP_PHONE_NUMBER_ID='',
@@ -74,16 +92,28 @@ class HomeViewTests(TestCase):
         self.assertIn('Thanks, your message has been saved.', messages)
 
     @override_settings(SECURE_SSL_REDIRECT=False)
-    def test_contact_form_requires_all_fields(self):
+    def test_contact_form_requires_valid_email(self):
         response = self.client.post(
             reverse('home'),
-            {'name': 'Visitor', 'email': '', 'message': 'Hello'},
+            {'name': 'Visitor', 'email': 'not-a-valid-email', 'message': 'Hello'},
             follow=True,
         )
 
         self.assertEqual(ContactMessage.objects.count(), 0)
         messages = [message.message for message in get_messages(response.wsgi_request)]
-        self.assertIn('Please fill in every contact field.', messages)
+        self.assertTrue(any('valid email' in msg.lower() for msg in messages))
+
+    @override_settings(SECURE_SSL_REDIRECT=False)
+    def test_contact_form_requires_all_fields(self):
+        response = self.client.post(
+            reverse('home'),
+            {'name': '', 'email': '', 'message': ''},
+            follow=True,
+        )
+
+        self.assertEqual(ContactMessage.objects.count(), 0)
+        messages = [message.message for message in get_messages(response.wsgi_request)]
+        self.assertTrue(len(messages) > 0)
 
     @override_settings(SECURE_SSL_REDIRECT=False)
     @patch('main.views.url_request.urlopen')
@@ -105,3 +135,4 @@ class HomeViewTests(TestCase):
 
         self.assertTrue(sent)
         self.assertTrue(mock_urlopen.called)
+
