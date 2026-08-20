@@ -1,5 +1,15 @@
+/* ==========================================================================
+   Dribbble Luxury Portfolio - Interactive JavaScript Engine
+   3D Tilt & Specular Lighting, Multi-phrase Typewriter & Theme Persistence
+   ========================================================================== */
+
 document.addEventListener('DOMContentLoaded', () => {
-    // Theme Management
+    // 1. Initialize Lucide Icons
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+
+    // 2. Theme Management (Dark / Light)
     const savedTheme = localStorage.getItem('portfolio-theme');
     const themeToggle = document.getElementById('theme-toggle');
     const themeLabel = document.getElementById('theme-label');
@@ -17,58 +27,105 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Default to sleek dark mode
     applyTheme(savedTheme || 'dark');
 
     if (themeToggle) {
         themeToggle.addEventListener('click', () => {
-            const nextTheme = document.body.classList.contains('light-mode') ? 'dark' : 'light';
+            const currentTheme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+            const nextTheme = currentTheme === 'light' ? 'dark' : 'light';
             localStorage.setItem('portfolio-theme', nextTheme);
             applyTheme(nextTheme);
         });
     }
 
-    // Typewriter Animation
-    const text = 'AI Developer | Django Developer | Full Stack Developer';
-    let index = 0;
+    // 3. Multi-phrase Typewriter Animation
+    const phrases = [
+        'AI & Neural Systems Builder',
+        'Django Backend Architect',
+        'Full Stack Product Engineer',
+        'Machine Learning Practitioner'
+    ];
+    
+    let phraseIndex = 0;
+    let charIndex = 0;
+    let isDeleting = false;
+    const typingElement = document.getElementById('typing');
 
-    function type() {
-        const typing = document.getElementById('typing');
-        if (!typing) {
-            return;
+    function typeLoop() {
+        if (!typingElement) return;
+
+        const currentPhrase = phrases[phraseIndex];
+
+        if (isDeleting) {
+            typingElement.textContent = currentPhrase.substring(0, charIndex - 1);
+            charIndex--;
+        } else {
+            typingElement.textContent = currentPhrase.substring(0, charIndex + 1);
+            charIndex++;
         }
 
-        typing.textContent = text.slice(0, index);
-        index++;
+        let typeSpeed = isDeleting ? 40 : 80;
 
-        if (index <= text.length) {
-            setTimeout(type, 70);
+        if (!isDeleting && charIndex === currentPhrase.length) {
+            typeSpeed = 2200; // Pause at end of phrase
+            isDeleting = true;
+        } else if (isDeleting && charIndex === 0) {
+            isDeleting = false;
+            phraseIndex = (phraseIndex + 1) % phrases.length;
+            typeSpeed = 400; // Brief pause before starting next phrase
         }
+
+        setTimeout(typeLoop, typeSpeed);
     }
 
-    type();
+    typeLoop();
 
-    // Scroll Reveal Observer
-    const revealItems = document.querySelectorAll('.reveal');
+    // 4. Interactive 3D Tilt Effect on Glass Cards
+    const tiltCards = document.querySelectorAll('.project-card-3d, .glass-showcase-card, .bento-card');
+
+    tiltCards.forEach((card) => {
+        card.addEventListener('mousemove', (e) => {
+            const rect = card.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            const centerX = rect.width / 2;
+            const centerY = rect.height / 2;
+
+            const rotateX = ((y - centerY) / centerY) * -7;
+            const rotateY = ((x - centerX) / centerX) * 7;
+
+            card.style.transform = `perspective(1000px) rotateX(${rotateX.toFixed(2)}deg) rotateY(${rotateY.toFixed(2)}deg) translateY(-4px)`;
+        });
+
+        card.addEventListener('mouseleave', () => {
+            card.style.transform = '';
+        });
+    });
+
+    // 5. Scroll Reveal with Intersection Observer
+    const revealElements = document.querySelectorAll('.reveal');
 
     if ('IntersectionObserver' in window) {
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) {
-                        entry.target.classList.add('is-visible');
-                        observer.unobserve(entry.target);
-                    }
-                });
-            },
-            { threshold: 0.12 }
-        );
+        const revealObserver = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('is-visible');
+                    revealObserver.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -40px 0px'
+        });
 
-        revealItems.forEach((item) => {
-            observer.observe(item);
+        revealElements.forEach((el) => {
+            revealObserver.observe(el);
         });
     } else {
-        revealItems.forEach((item) => {
-            item.classList.add('is-visible');
+        revealElements.forEach((el) => {
+            el.classList.add('is-visible');
         });
     }
 });
